@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: imas-cs-tutor
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DAILY_QUESTION_LIMIT
+        value: "10"
+      - key: DATABASE_PATH
+        value: ./data/imas.sqlite
+      - key: OPENAI_API_KEY
+        sync: false
