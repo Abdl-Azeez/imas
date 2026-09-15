@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMAS CS Tutor</title>
+<style>
+  /* ============================================================
+     IMAS CS TUTOR — STYLESHEET
+     Visual language matches the existing IMAS Python/MCQ site:
+     purple gradient brand, white rounded cards, soft shadows.
+     No sidebar. No topic/mode selectors. No "AI" wording anywhere
+     in the student-facing interface.
+     ============================================================ */
+
+  :root {
+    --primary-purple: #667eea;
+    --secondary-purple: #764ba2;
+    --success-green: #48bb78;
+    --warn-amber: #dd9c33;
+    --danger-red: #e0555a;
+    --light-bg: #f8f9fa;
+    --border-color: #e2e8f0;
+    --text-main: #2c3e50;
+    --text-secondary: #4a5568;
+    --code-bg: #2d3748;
+    --terminal-bg: #1a202c;
+    --card-radius: 16px;
+    --control-radius: 10px;
+    --shadow-soft: 0 4px 16px rgba(44, 62, 80, 0.08);
+    --shadow-lift: 0 10px 30px rgba(44, 62, 80, 0.14);
+    --content-width: 760px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-main);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  button { font-family: inherit; cursor: pointer; }
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 3px solid #ffd166;
+    outline-offset: 2px;
+  }
+
+  /* ---------------- App shell ---------------- */
+  #app {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .frame {
+    width: 100%;
+    max-width: 960px;
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: var(--shadow-lift);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ---------------- Top bar: logo + identity + usage ---------------- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .logo-mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Placeholder for the real IMAS logo asset. Replace the <div class="logo-badge">
+     contents with an <img src="imas-logo.png" alt="IMAS"> when the asset is available. */
+  .logo-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+  }
+
+  .logo-img {
+    height: 34px;
+    width: auto;
+    display: block;
+  }
+
+  .usage-pill {
+    background: var(--light-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+
+  .usage-pill .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--success-green);
+  }
+  .usage-pill.warn .dot { background: var(--warn-amber); }
+  .usage-pill.full .dot { background: var(--danger-red); }
+
+  /* ---------------- Main content ---------------- */
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .chat-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 24px 12px;
+  }
+
+  /* Welcome screen */
+  .welcome-wrap {
+    max-width: var(--content-width);
+    margin: 4px auto 0;
+    text-align: center;
+  }
+
+  .welcome-wrap .welcome-heading {
+    font-size: 25px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 8px;
+  }
+
+  .welcome-wrap p.tagline {
+    color: var(--secondary-purple);
+    font-size: 14.5px;
+    font-weight: 600;
+    margin: 0 0 14px;
+  }
+
+  .welcome-wrap p.sub {
+    color: var(--text-secondary);
+    font-size: 14.5px;
+    margin: 0 0 26px;
+  }
+
+  .starter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 28px;
+    text-align: left;
+  }
+
+  .starter-card {
+    background: #fff;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--card-radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    text-align: left;
+    width: 100%;
+  }
+  .starter-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift);
+    border-color: var(--primary-purple);
+  }
+
+  .starter-card .title {
+    font-weight: 700;
+    font-size: 14.5px;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .starter-card .example {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+
+  .suggested-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #9aa5b1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 6px;
+  }
+
+  .chip {
+    background: #eef0ff;
+    color: var(--secondary-purple);
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.15s ease;
+  }
+  .chip:hover { background: #dfe2ff; }
+
+  /* Messages */
+  .msg-row { display: flex; margin: 0 auto 18px; max-width: var(--content-width); animation: fadeInUp 0.25s ease; }
+  .msg-row.student { justify-content: flex-end; }
+  .msg-row.tutor { justify-content: flex-start; }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-bubble {
+    max-width: 82%;
+    border-radius: 16px;
+    padding: 13px 16px;
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+
+  .msg-row.student .msg-bubble {
+    background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+    color: #fff;
+    border-bottom-right-radius: 4px;
+    white-space: pre-wrap;
+  }
+
+  .tutor-block { max-width: 88%; }
+
+  .tutor-label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .tutor-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+    flex-shrink: 0;
+  }
+
+  .tutor-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .msg-row.tutor .msg-bubble {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-bottom-left-radius: 4px;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .resp-section { margin-bottom: 10px; }
+  .resp-section:last-child { margin-bottom: 0; }
+  .resp-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--secondary-purple);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .resp-text { color: var(--text-main); }
+
+  .code-block {
+    position: relative;
+    background: var(--code-bg);
+    border-radius: 10px;
+    margin: 8px 0;
+    overflow: hidden;
+  }
+  .code-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 12px;
+    background: rgba(255,255,255,0.06);
+    font-size: 11.5px;
+    color: #cbd5e0;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .copy-btn {
+    background: rgba(255,255,255,0.1);
+    color: #e2e8f0;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    transition: background 0.15s ease;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,0.2); }
+  .copy-btn.copied { background: var(--success-green); color: #fff; }
+
+  .code-block pre {
+    margin: 0;
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #e2e8f0;
+  }
+
+  .kw { color: #a78bfa; }
+  .str { color: #86e0a0; }
+  .cmt { color: #8494a8; font-style: italic; }
+  .num { color: #f2b880; }
+
+  .response-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+  }
+  .action-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .action-btn:hover { background: var(--light-bg); border-color: var(--primary-purple); }
+  .action-btn.selected {
+    background: #eef0ff;
+    border-color: var(--primary-purple);
+    color: var(--secondary-purple);
+    font-weight: 600;
+  }
+
+  /* Typing indicator */
+  .typing-row { display: flex; margin: 0 auto 18px; max-width: var(--content-width); }
+  .typing-bubble {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-soft);
+  }
+  .typing-dots { display: flex; gap: 4px; }
+  .typing-dots span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--primary-purple);
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+    40% { transform: translateY(-4px); opacity: 1; }
+  }
+
+  /* Error state */
+  .error-card {
+    background: #fff5f5;
+    border: 1px solid #fed7d7;
+    border-radius: 14px;
+    padding: 14px 16px;
+    max-width: 88%;
+    font-size: 14px;
+    color: #9b2c2c;
+  }
+  .error-card .retry-btn {
+    margin-top: 8px;
+    background: var(--danger-red);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  /* Limit reached banner */
+  .limit-banner {
+    max-width: var(--content-width);
+    margin: 4px auto 14px;
+    background: #fffaf0;
+    border: 1px solid #fbd38d;
+    color: #975a16;
+    border-radius: 14px;
+    padding: 13px 18px;
+    font-size: 13.5px;
+    text-align: center;
+    display: none;
+  }
+  .limit-banner.show { display: block; }
+
+  /* ---------------- Input area ---------------- */
+  .input-area {
+    max-width: var(--content-width);
+    width: 100%;
+    margin: 0 auto;
+    padding: 10px 24px 22px;
+  }
+
+  .debug-drawer {
+    display: none;
+    background: var(--light-bg);
+    border: 1.5px solid var(--border-color);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .debug-drawer.open { display: block; }
+  .debug-drawer textarea {
+    width: 100%;
+    min-height: 110px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--terminal-bg);
+    color: #e2e8f0;
+    resize: vertical;
+  }
+  .debug-drawer-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+  .debug-drawer-head button {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+  .debug-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+  .debug-send-btn {
+    background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 9px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .debug-send-btn:disabled { background: #cbd5e0; cursor: not-allowed; }
+
+  .plus-menu {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lift);
+    padding: 6px;
+    position: absolute;
+    bottom: 62px;
+    left: 0;
+    min-width: 190px;
+    z-index: 5;
+  }
+  .plus-menu.open { display: flex; }
+  .plus-menu button {
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 9px 10px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: var(--text-main);
+  }
+  .plus-menu button:hover { background: var(--light-bg); }
+
+  .input-shell {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    background: var(--light-bg);
+    border: 1.5px solid var(--border-color);
+    border-radius: 18px;
+    padding: 8px 8px 8px 12px;
+    transition: border-color 0.15s ease;
+  }
+  .input-shell:focus-within { border-color: var(--primary-purple); }
+
+  .plus-btn, .send-btn {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+  }
+  .plus-btn {
+    background: #fff;
+    border: 1.5px solid var(--border-color);
+    color: var(--text-secondary);
+  }
+  .plus-btn:hover { border-color: var(--primary-purple); color: var(--primary-purple); }
+
+  .send-btn {
+    background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+    color: #fff;
+    font-size: 15px;
+  }
+  .send-btn:disabled {
+    background: #cbd5e0;
+    color: #fff;
+    cursor: not-allowed;
+  }
+
+  #chat-input {
+    flex: 1;
+    border: none;
+    background: none;
+    resize: none;
+    font-family: inherit;
+    font-size: 14.5px;
+    color: var(--text-main);
+    padding: 9px 4px;
+    max-height: 140px;
+    line-height: 1.4;
+  }
+  #chat-input:focus { outline: none; }
+  #chat-input::placeholder { color: #a0aec0; }
+
+  .below-input-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+  }
+
+  .usage-footer {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+  .usage-footer .reset-note {
+    color: #9aa5b1;
+    font-size: 11.5px;
+    display: block;
+    margin-top: 2px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text-main);
+    color: #fff;
+    padding: 11px 20px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    box-shadow: var(--shadow-lift);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 100;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .login-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(102,126,234,0.96), rgba(118,75,162,0.96));
+  }
+  .login-card {
+    width: min(100%, 390px);
+    background: #fff;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: var(--shadow-lift);
+  }
+  .login-card h1 { margin: 0 0 8px; font-size: 24px; }
+  .login-card p { margin: 0 0 22px; color: var(--text-secondary); font-size: 14px; }
+  .login-card label { display: block; margin: 14px 0 6px; font-size: 13px; font-weight: 700; }
+  .login-card input {
+    width: 100%;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--control-radius);
+    padding: 11px 12px;
+    font: inherit;
+  }
+  .login-card button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 11px 14px;
+    border: 0;
+    border-radius: var(--control-radius);
+    background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+    color: #fff;
+    font-weight: 700;
+  }
+  .login-card button:disabled { background: #cbd5e0; cursor: wait; }
+  .login-error { min-height: 18px; margin-top: 12px !important; margin-bottom: 0 !important; color: #9b2c2c !important; }
+
+  /* ---------------- Responsive ---------------- */
+  @media (max-width: 720px) {
+    #app { padding: 0; }
+    .frame { border-radius: 0; height: 100vh; }
+    .topbar { padding: 12px 16px; }
+    .starter-grid { grid-template-columns: 1fr; }
+    .chat-scroll { padding: 18px 14px 8px; }
+    .input-area { padding: 8px 14px 16px; }
+    .msg-bubble, .tutor-block { max-width: 92%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <form class="login-card" id="loginForm">
+    <h1>Sign in to IMAS CS Tutor</h1>
+    <p>Use your student account to continue.</p>
+    <label for="loginUsername">Username</label>
+    <input id="loginUsername" autocomplete="username" required>
+    <label for="loginPassword">Password</label>
+    <input id="loginPassword" type="password" autocomplete="current-password" required>
+    <button type="submit" id="loginButton">Sign in</button>
+    <p class="login-error" id="loginError" role="alert"></p>
+  </form>
+</div>
+
+<div id="app">
+  <div class="frame">
+
+    <!-- ==================== TOP BAR: LOGO + USAGE ====================
+         No sign-in UI: the student's identity is assumed to already be
+         authenticated via the IMAS Google Site session. -->
+    <div class="topbar">
+      <div class="logo-mark">
+        <!-- Placeholder for the real IMAS logo asset.
+             Replace with: <img class="logo-img" src="imas-logo.png" alt="IMAS"> -->
+        <div class="logo-badge" aria-hidden="true">IMAS</div>
+      </div>
+
+      <div class="usage-pill" id="usagePill">
+        <span class="dot"></span>
+        <span id="usageCount">Questions used: 0 / 10</span>
+      </div>
+    </div>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <div class="main-content">
+
+      <div class="chat-scroll" id="chatScroll">
+
+        <!-- Welcome screen (shown when conversation is empty) -->
+        <div class="welcome-wrap" id="welcomeWrap">
+          <h2 class="welcome-heading">Welcome to the IMAS CS Tutor 👋</h2>
+          <p class="tagline">Your Computer Science Learning Assistant</p>
+          <p class="sub">What would you like help with today?</p>
+
+          <div class="starter-grid">
+            <button class="starter-card" data-example="What is a variable?">
+              <div class="title">💡 Explain a Concept</div>
+              <div class="example">"What is a variable?"</div>
+            </button>
+            <button class="starter-card" data-example="How do I use a FOR loop in Python?">
+              <div class="title">🐍 Python Help</div>
+              <div class="example">"How do I use a FOR loop in Python?"</div>
+            </button>
+            <button class="starter-card" data-example="Why is my Python code giving an error?">
+              <div class="title">🐞 Debug My Code</div>
+              <div class="example">"Why is my Python code giving an error?"</div>
+            </button>
+            <button class="starter-card" data-example="Help me understand this pseudocode question.">
+              <div class="title">🧩 Solve a Problem</div>
+              <div class="example">"Help me understand this pseudocode question."</div>
+            </button>
+          </div>
+
+          <div class="suggested-label">Suggested questions</div>
+          <div class="chip-row" id="chipRow">
+            <button class="chip" data-example="What is a constant?">What is a constant?</button>
+            <button class="chip" data-example="Explain a FOR loop.">Explain a FOR loop.</button>
+            <button class="chip" data-example="What is an array?">What is an array?</button>
+            <button class="chip" data-example="How does an IF statement work?">How does an IF statement work?</button>
+            <button class="chip" data-example="Why does my Python code give an error?">Why does my Python code give an error?</button>
+          </div>
+        </div>
+
+        <!-- Message list (hidden until first message) -->
+        <div id="messageList" style="display:none;"></div>
+
+      </div>
+
+      <!-- ==================== INPUT AREA ==================== -->
+      <div class="input-area">
+
+        <div class="limit-banner" id="limitBanner">
+          🎯 You have used all 10 questions available for this two-week period. You can continue using the tutor when your next two-week period begins.
+        </div>
+
+        <!-- Paste code / error drawer (available via the + button) -->
+        <div class="debug-drawer" id="debugDrawer">
+          <div class="debug-drawer-head">
+            <span id="debugDrawerTitle">Paste your code</span>
+            <button id="debugDrawerClose" aria-label="Close panel">✕ Close</button>
+          </div>
+          <textarea id="debugTextarea" placeholder="Paste your code or error here..."></textarea>
+          <div class="debug-footer">
+            <button class="debug-send-btn" id="debugSendBtn">Send</button>
+          </div>
+        </div>
+
+        <div style="position:relative;">
+          <div class="plus-menu" id="plusMenu">
+            <button id="plusPasteCode">📋 Paste Code</button>
+            <button id="plusAskError">⚠️ Ask About an Error</button>
+          </div>
+
+          <div class="input-shell">
+            <button class="plus-btn" id="plusBtn" aria-label="More input options" aria-haspopup="true">+</button>
+            <textarea id="chat-input" rows="1" placeholder="Ask your Computer Science question..." aria-label="Your question"></textarea>
+            <button class="send-btn" id="sendBtn" disabled aria-label="Send question">➤</button>
+          </div>
+        </div>
+
+        <div class="below-input-row">
+          <div class="usage-footer">
+            <span id="usageFooterText">Questions used: 0 / 10</span>
+            <span class="reset-note" id="resetNote"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   IMAS CS TUTOR — APPLICATION LOGIC
+   Front-end prototype only. All tutor responses are MOCKED below.
+   The word "AI" is intentionally never shown to the student.
+   ================================================================
+
+   FUTURE PRODUCTION ARCHITECTURE:
+
+     Student Browser
+            ↓
+     IMAS Google Authentication
+            ↓
+     Secure IMAS Backend
+            ↓
+     Check student's IMAS email
+            ↓
+     Check current two-week usage
+            ↓
+     If fewer than 10:  process request via OpenAI, increase usage by 1, return response
+     If 10:              reject request, show limit message
+            ↓
+     Student Browser
+
+   The backend is the single source of truth for identity and usage.
+   It must:
+     - Identify the student by their authenticated IMAS Google email
+       (never by localStorage, cookies alone, device ID, or IP)
+     - Track { studentEmail, periodStart, periodEnd, questionsUsed, limit }
+     - Enforce the 10-question two-week limit server-side
+     - Control how much conversation history is sent to OpenAI
+     - Keep the OpenAI API key on the server only — it must never
+       reach this file or the browser.
+
+   This front-end prototype uses localStorage ONLY to demonstrate
+   the experience. It is NOT the real security mechanism.
+   ================================================================ */
+
+const QUESTION_LIMIT = 10;
+const PERIOD_LENGTH_DAYS = 14;
+// Arbitrary fixed reference date used only so the demo's two-week
+// periods land on consistent boundaries. The real period calendar
+// will be defined and owned by the backend.
+const PERIOD_EPOCH = new Date(Date.UTC(2025, 0, 1)); // 1 Jan 2025
+
+const STORAGE_KEY_COUNT = "imas_cs_tutor_questions_used";
+const STORAGE_KEY_PERIOD = "imas_cs_tutor_period_start";
+
+let conversation = [];      // { role: 'student' | 'tutor' | 'error', ...content }
+let usedThisPeriod = 0;
+let questionLimit = QUESTION_LIMIT;
+let isWaitingForResponse = false;
+let conversationId = null;
+let authToken = localStorage.getItem("imas_cs_tutor_token");
+
+/* ---------------- Element references ---------------- */
+const chatScroll = document.getElementById("chatScroll");
+const welcomeWrap = document.getElementById("welcomeWrap");
+const messageList = document.getElementById("messageList");
+const chatInput = document.getElementById("chat-input");
+const sendBtn = document.getElementById("sendBtn");
+const usageCountEl = document.getElementById("usageCount");
+const usageFooterText = document.getElementById("usageFooterText");
+const resetNote = document.getElementById("resetNote");
+const usagePill = document.getElementById("usagePill");
+const limitBanner = document.getElementById("limitBanner");
+const plusMenu = document.getElementById("plusMenu");
+const debugDrawer = document.getElementById("debugDrawer");
+const debugTextarea = document.getElementById("debugTextarea");
+const toastEl = document.getElementById("toast");
+const loginScreen = document.getElementById("loginScreen");
+const loginForm = document.getElementById("loginForm");
+const loginUsername = document.getElementById("loginUsername");
+const loginPassword = document.getElementById("loginPassword");
+const loginButton = document.getElementById("loginButton");
+const loginError = document.getElementById("loginError");
+let loginResolver = null;
+
+/* NOTE ON IDENTITY:
+   There is no sign-in UI in this prototype. Students reach this
+   page already authenticated through the IMAS Google Site session.
+   In production, the secure backend reads the student's identity
+   from that authenticated session (e.g. their school email) — it
+   is never entered, displayed, or stored by this front end. */
+
+/* ================================================================
+   TWO-WEEK QUESTION LIMIT (front-end demo via localStorage)
+   In production the backend owns { studentEmail, periodStart,
+   periodEnd, questionsUsed, limit } for each student, and the
+   browser simply asks the backend for current usage on load.
+   ================================================================ */
+function msPerDay() { return 24 * 60 * 60 * 1000; }
+
+function currentPeriodStart() {
+  const now = new Date();
+  const daysSinceEpoch = Math.floor((now - PERIOD_EPOCH) / msPerDay());
+  const periodIndex = Math.floor(daysSinceEpoch / PERIOD_LENGTH_DAYS);
+  return new Date(PERIOD_EPOCH.getTime() + periodIndex * PERIOD_LENGTH_DAYS * msPerDay());
+}
+
+function formatDate(d) {
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+}
+
+async function loadUsage() {
+  const response = await fetch("/usage/today", { headers: { Authorization: `Bearer ${authToken}` } });
+  if (response.status === 401) {
+    authToken = null;
+    localStorage.removeItem("imas_cs_tutor_token");
+    await ensureAuthenticated();
+    return loadUsage();
+  }
+  if (!response.ok) throw new Error("Could not load your question usage. Please refresh and try again.");
+  const usage = await response.json();
+  usedThisPeriod = usage.used;
+  questionLimit = usage.limit;
+  renderUsage(usage.resetsAt);
+}
+
+function incrementUsage() {
+  loadUsage().catch(() => {});
+}
+
+function renderUsage(resetsAt) {
+  const label = `Questions used: ${usedThisPeriod} / ${questionLimit}`;
+  usageCountEl.textContent = label;
+  usageFooterText.textContent = label;
+
+  usagePill.classList.remove("warn", "full");
+  limitBanner.classList.remove("show");
+
+  if (usedThisPeriod >= questionLimit) {
+    usagePill.classList.add("full");
+    limitBanner.classList.add("show");
+    resetNote.textContent = resetsAt ? `New questions available from ${formatDate(new Date(resetsAt))}` : "Questions reset tomorrow";
+  } else if (usedThisPeriod >= questionLimit - 2) {
+    usagePill.classList.add("warn");
+    resetNote.textContent = "";
+  } else {
+    resetNote.textContent = "";
+  }
+  updateSendButtonState();
+}
+
+function limitReached() {
+  return usedThisPeriod >= questionLimit;
+}
+
+/* ================================================================
+   RENDERING: WELCOME SCREEN vs MESSAGE LIST
+   ================================================================ */
+function renderConversation() {
+  if (conversation.length === 0) {
+    welcomeWrap.style.display = "block";
+    messageList.style.display = "none";
+    messageList.innerHTML = "";
+    return;
+  }
+  welcomeWrap.style.display = "none";
+  messageList.style.display = "block";
+  messageList.innerHTML = "";
+  conversation.forEach(item => {
+    if (item.role === "student") {
+      messageList.appendChild(buildStudentBubble(item.text));
+    } else if (item.role === "tutor") {
+      messageList.appendChild(buildTutorBubble(item));
+    } else if (item.role === "error") {
+      messageList.appendChild(buildErrorBubble(item));
+    }
+  });
+  scrollToBottom();
+}
+
+function scrollToBottom() {
+  requestAnimationFrame(() => {
+    chatScroll.scrollTop = chatScroll.scrollHeight;
+  });
+}
+
+function buildStudentBubble(text) {
+  const row = document.createElement("div");
+  row.className = "msg-row student";
+  const bubble = document.createElement("div");
+  bubble.className = "msg-bubble";
+  bubble.textContent = text;
+  row.appendChild(bubble);
+  return row;
+}
+
+function buildTutorBubble(item) {
+  const row = document.createElement("div");
+  row.className = "msg-row tutor";
+
+  const block = document.createElement("div");
+  block.className = "tutor-block";
+
+  const labelRow = document.createElement("div");
+  labelRow.className = "tutor-label-row";
+  labelRow.innerHTML = `<span class="tutor-dot"></span><span class="tutor-label">Tutor</span>`;
+  block.appendChild(labelRow);
+
+  const bubble = document.createElement("div");
+  bubble.className = "msg-bubble";
+  bubble.appendChild(renderStructuredResponse(item.response));
+
+  // Local-only actions: Copy / Helpful / Not helpful — never trigger another request.
+  const actions = document.createElement("div");
+  actions.className = "response-actions";
+  actions.innerHTML = `
+    <button class="action-btn copy-response-btn">📋 Copy</button>
+    <button class="action-btn feedback-btn" data-value="up">👍 Helpful</button>
+    <button class="action-btn feedback-btn" data-value="down">👎 Not helpful</button>
+  `;
+  bubble.appendChild(actions);
+
+  actions.querySelector(".copy-response-btn").addEventListener("click", () => {
+    copyTextToClipboard(plainTextFromResponse(item.response));
+    showToast("Response copied");
+  });
+
+  actions.querySelectorAll(".feedback-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      actions.querySelectorAll(".feedback-btn").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      if (item.messageId) {
+        fetch(`/messages/${item.messageId}/feedback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ helpful: btn.dataset.value === "up" })
+        }).catch(() => {});
+      }
+      showToast(btn.dataset.value === "up" ? "Thanks for the feedback!" : "Thanks — we'll use this to improve.");
+    });
+  });
+
+  block.appendChild(bubble);
+  row.appendChild(block);
+  return row;
+}
+
+function buildErrorBubble(item) {
+  const row = document.createElement("div");
+  row.className = "msg-row tutor";
+  const card = document.createElement("div");
+  card.className = "error-card";
+  const message = item.errorMessage || "Something went wrong. Please try again.";
+  card.textContent = `${message} `;
+  const lineBreak = document.createElement("br");
+  const retryButton = document.createElement("button");
+  retryButton.className = "retry-btn";
+  retryButton.textContent = "Try Again";
+  card.append(lineBreak, retryButton);
+  retryButton.addEventListener("click", () => {
+    conversation = conversation.filter(c => c !== item);
+    // Retrying performs a new request and will count as a new question, same as Send.
+    performTutorRequest(item.originalText, item.originalIsCodeSubmission);
+  });
+  row.appendChild(card);
+  return row;
+}
+
+/* ---------------- Structured response rendering ---------------- */
+function renderStructuredResponse(response) {
+  const wrap = document.createElement("div");
+  response.sections.forEach(section => {
+    const sec = document.createElement("div");
+    sec.className = "resp-section";
+    if (section.label) {
+      const label = document.createElement("div");
+      label.className = "resp-label";
+      label.textContent = section.label;
+      sec.appendChild(label);
+    }
+    if (section.text) {
+      const p = document.createElement("div");
+      p.className = "resp-text";
+      p.textContent = section.text;
+      sec.appendChild(p);
+    }
+    if (section.code) {
+      sec.appendChild(buildCodeBlock(section.code, section.codeLang || "text"));
+    }
+    wrap.appendChild(sec);
+  });
+  return wrap;
+}
+
+function buildCodeBlock(code, lang) {
+  const wrap = document.createElement("div");
+  wrap.className = "code-block";
+
+  const head = document.createElement("div");
+  head.className = "code-block-head";
+  const langLabel = document.createElement("span");
+  langLabel.textContent = lang.toUpperCase();
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "copy-btn";
+  copyBtn.textContent = "Copy";
+  copyBtn.addEventListener("click", () => {
+    copyTextToClipboard(code);
+    copyBtn.textContent = "Copied ✓";
+    copyBtn.classList.add("copied");
+    setTimeout(() => {
+      copyBtn.textContent = "Copy";
+      copyBtn.classList.remove("copied");
+    }, 1600);
+  });
+  head.appendChild(langLabel);
+  head.appendChild(copyBtn);
+
+  const pre = document.createElement("pre");
+  const codeEl = document.createElement("code");
+  codeEl.innerHTML = highlightCode(code, lang);
+  pre.appendChild(codeEl);
+
+  wrap.appendChild(head);
+  wrap.appendChild(pre);
+  return wrap;
+}
+
+function highlightCode(code, lang) {
+  // Lightweight illustrative syntax highlighting (not a full parser).
+  let escaped = code
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  if (lang === "python") {
+    escaped = escaped.replace(/(#.*)/g, '<span class="cmt">$1</span>');
+    escaped = escaped.replace(/(&quot;.*?&quot;|"[^"]*"|'[^']*')/g, '<span class="str">$1</span>');
+    escaped = escaped.replace(/\b(def|if|elif|else|for|while|in|return|import|from|print|input|int|float|str|True|False|None|and|or|not)\b/g, '<span class="kw">$1</span>');
+    escaped = escaped.replace(/\b(\d+)\b/g, '<span class="num">$1</span>');
+  } else if (lang === "sql") {
+    escaped = escaped.replace(/\b(SELECT|FROM|WHERE|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|AND|OR|ORDER BY|GROUP BY)\b/gi, '<span class="kw">$1</span>');
+    escaped = escaped.replace(/('[^']*')/g, '<span class="str">$1</span>');
+  } else if (lang === "pseudocode") {
+    escaped = escaped.replace(/\b(DECLARE|OUTPUT|INPUT|IF|THEN|ELSE|ENDIF|FOR|TO|NEXT|WHILE|ENDWHILE|INTEGER|STRING|REAL|BOOLEAN)\b/g, '<span class="kw">$1</span>');
+  }
+  return escaped;
+}
+
+function plainTextFromResponse(response) {
+  return response.sections.map(s => {
+    let out = "";
+    if (s.label) out += s.label.toUpperCase() + "\n";
+    if (s.text) out += s.text + "\n";
+    if (s.code) out += s.code + "\n";
+    return out;
+  }).join("\n").trim();
+}
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } catch (e) {}
+  document.body.removeChild(ta);
+}
+
+/* ================================================================
+   TYPING INDICATOR — "Thinking..." only, no AI wording
+   ================================================================ */
+function showTypingIndicator() {
+  const row = document.createElement("div");
+  row.className = "typing-row";
+  row.id = "typingRow";
+  row.innerHTML = `
+    <div class="typing-bubble">
+      Working on your answer
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>`;
+  messageList.appendChild(row);
+  scrollToBottom();
+}
+function removeTypingIndicator() {
+  const row = document.getElementById("typingRow");
+  if (row) row.remove();
+}
+
+/* ================================================================
+   SENDING A QUESTION (the ONLY path that consumes one of the 10)
+   ================================================================ */
+function updateSendButtonState() {
+  const hasText = chatInput.value.trim().length > 0;
+  sendBtn.disabled = !hasText || isWaitingForResponse || limitReached();
+}
+
+chatInput.addEventListener("input", () => {
+  chatInput.style.height = "auto";
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 140) + "px";
+  updateSendButtonState();
+});
+
+chatInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    handleSendClick();
+  }
+});
+
+sendBtn.addEventListener("click", handleSendClick);
+
+function handleSendClick() {
+  const text = chatInput.value.trim();
+  if (!text || isWaitingForResponse || limitReached()) return;
+
+  chatInput.value = "";
+  chatInput.style.height = "auto";
+  updateSendButtonState();
+
+  performTutorRequest(text, false);
+}
+
+/* Paste code / error drawer: sends as ONE question, same as any Send action */
+document.getElementById("debugSendBtn").addEventListener("click", () => {
+  const code = debugTextarea.value.trim();
+  if (!code || isWaitingForResponse || limitReached()) return;
+  debugTextarea.value = "";
+  closeDebugDrawer();
+  performTutorRequest(code, true);
+});
+
+function performTutorRequest(text, isCodeSubmission) {
+  if (limitReached()) return;
+
+  conversation.push({ role: "student", text: isCodeSubmission ? `[Code submitted]\n${text}` : text });
+  renderConversation();
+
+  isWaitingForResponse = true;
+  updateSendButtonState();
+  showTypingIndicator();
+
+  sendMessageToTutor(text, conversation)
+    .then(response => {
+      removeTypingIndicator();
+      conversationId = response.conversationId || conversationId;
+      conversation.push({ role: "tutor", response: response, messageId: response.messageId });
+      incrementUsage();
+      isWaitingForResponse = false;
+      renderConversation();
+      updateSendButtonState();
+    })
+    .catch(error => {
+      removeTypingIndicator();
+      conversation.push({
+        role: "error",
+        originalText: text,
+        originalIsCodeSubmission: isCodeSubmission,
+        errorMessage: error.message
+      });
+      isWaitingForResponse = false;
+      renderConversation();
+      updateSendButtonState();
+    });
+}
+
+/* ================================================================
+   TUTOR REQUEST FUNCTION
+   -----------------------------------------------------------------
+   This is the ONLY function that should be modified to call the
+   real secure backend in production. Everything else in this file
+   calls sendMessageToTutor() and only cares about the Promise
+   it returns.
+   ================================================================ */
+async function sendMessageToTutor(message, conversationHistory) {
+  const requestBody = { message: String(message || "").trim(), mode: conversationHistory.at(-1)?.text?.startsWith("[Code submitted]") ? "debug" : "ask" };
+  if (conversationId) requestBody.conversationId = conversationId;
+  const response = await fetch("/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+    body: JSON.stringify(requestBody)
+  });
+  const data = await response.json();
+  if (response.status === 429) {
+    usedThisPeriod = data.usage?.used ?? questionLimit;
+    renderUsage();
+    throw new Error("limit_reached");
+  }
+  if (!response.ok) throw new Error(data.error || "Tutor service unavailable");
+  return data;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/* ================================================================
+   MOCK RESPONSE ENGINE (keyword based, for prototype only)
+   The tutor determines the relevant subject area from the
+   question itself — there is no topic or mode selector.
+   ================================================================ */
+// Keywords that clearly signal the question is within IMAS CS Tutor's
+// subject boundary: Computer Science, ICT, technology, cybersecurity,
+// programming, and related learning-support questions.
+const IN_SCOPE_KEYWORDS = [
+  "variable", "constant", "loop", "for ", "while", "if ", "statement",
+  "array", "list", "pseudocode", "python", "sql", "database", "query",
+  "logic gate", "and gate", "or gate", "not gate", "algorithm",
+  "function", "procedure", "data type", "binary", "input", "output",
+  "code", "debug", "error", "syntax", "program", "computer", "ict",
+  "cyber", "phishing", "malware", "encrypt", "authentic", "firewall",
+  "network", "hardware", "software", "revise", "revision", "study",
+  "exam question", "exam", "learn", "understand", "computational",
+  "computing", "technology", "digital", "online safety", "iteration",
+  "selection", "boolean", "integer", "string", "compile", "runtime"
+];
+
+function isInScope(message) {
+  const q = message.toLowerCase();
+  return IN_SCOPE_KEYWORDS.some(kw => q.includes(kw));
+}
+
+function outOfScopeResponse() {
+  return { sections: [
+    { text: "I'm here to help with Computer Science, ICT, technology and learning-related questions. Please ask me something related to one of these areas." }
+  ]};
+}
+
+function buildMockResponse(message) {
+  const q = message.toLowerCase();
+
+  if (!isInScope(message)) {
+    return outOfScopeResponse();
+  }
+
+  if (/error|traceback|syntaxerror|doesn't work|bug/.test(q) || /print\(["'][^"']*$/.test(message)) {
+    return debugResponse(message);
+  }
+
+  if (/\bvariable\b/.test(q)) return variableResponse();
+  if (/\bconstant\b/.test(q)) return constantResponse();
+  if (/for loop|\bfor\b.*loop/.test(q)) return forLoopResponse();
+  if (/\bif\b.*statement|selection/.test(q)) return ifStatementResponse();
+  if (/\barray\b|\blist\b/.test(q)) return arrayResponse();
+  if (/pseudocode/.test(q)) return pseudocodeResponse();
+  if (/\bsql\b|select\b.*from|database/.test(q)) return sqlResponse();
+  if (/logic gate|\band gate\b|\bor gate\b|\bnot gate\b/.test(q)) return logicGateResponse();
+  if (/phishing/.test(q)) return cyberResponse("phishing");
+  if (/malware|virus/.test(q)) return cyberResponse("malware");
+  if (/encrypt/.test(q)) return cyberResponse("encryption");
+  if (/authentic/.test(q)) return cyberResponse("authentication");
+  if (/firewall/.test(q)) return cyberResponse("firewall");
+  if (/\bict\b/.test(q)) return ictResponse();
+
+  return genericResponse(message);
+}
+
+function variableResponse() {
+  return { sections: [
+    { label: "Explanation", text: "A variable is a named storage location used to hold a value that can change while a program runs." },
+    { label: "Example", code: 'age = 16\nprint(age)', codeLang: "python" },
+    { label: "Key Point", text: "Here, age is the variable name and 16 is its current value — the value can be updated later in the program." }
+  ]};
+}
+
+function constantResponse() {
+  return { sections: [
+    { label: "Explanation", text: "A constant is a named value that is set once and is intended not to change while the program runs." },
+    { label: "Example", code: 'PI = 3.14159\nprint(PI)', codeLang: "python" },
+    { label: "Key Point", text: "Python doesn't enforce constants, but writing the name in capitals signals to other programmers that it shouldn't be changed." }
+  ]};
+}
+
+function forLoopResponse() {
+  return { sections: [
+    { label: "Explanation", text: "A FOR loop repeats a block of code a set number of times, using a counter (control) variable to track progress." },
+    { label: "Example", code: 'for i in range(5):\n    print(i)', codeLang: "python" },
+    { label: "Key Point", text: "range(5) produces the values 0 to 4, so the loop body runs exactly 5 times." }
+  ]};
+}
+
+function ifStatementResponse() {
+  return { sections: [
+    { label: "Explanation", text: "An IF statement is a selection structure: it checks a condition and only runs a block of code when that condition is true." },
+    { label: "Example", code: 'age = int(input("Enter your age: "))\n\nif age >= 18:\n    print("Adult")\nelse:\n    print("Minor")', codeLang: "python" },
+    { label: "Key Point", text: "If the condition is false, the program runs the else block instead, so exactly one branch executes." }
+  ]};
+}
+
+function arrayResponse() {
+  return { sections: [
+    { label: "Explanation", text: "An array (called a list in Python) stores multiple values together under one name, accessed by position (index)." },
+    { label: "Example", code: 'scores = [65, 70, 82, 90]\nprint(scores[0])', codeLang: "python" },
+    { label: "Key Point", text: "Indexing starts at 0, so scores[0] is the first item in the list." }
+  ]};
+}
+
+function pseudocodeResponse() {
+  return { sections: [
+    { label: "Explanation", text: "Pseudocode describes an algorithm's logic in plain, structured steps without following one specific programming language's syntax." },
+    { label: "Pseudocode", code: 'DECLARE Age : INTEGER\n\nOUTPUT "Enter your age"\nINPUT Age\n\nIF Age >= 18 THEN\n    OUTPUT "Adult"\nELSE\n    OUTPUT "Minor"\nENDIF', codeLang: "pseudocode" },
+    { label: "Key Point", text: "Keywords like DECLARE, IF, THEN, ELSE and ENDIF keep the logic readable regardless of which language it's later written in." }
+  ]};
+}
+
+function sqlResponse() {
+  return { sections: [
+    { label: "Explanation", text: "SQL (Structured Query Language) is used to retrieve and manage data stored in a database table." },
+    { label: "Example", code: "SELECT name, age\nFROM students\nWHERE age >= 16;", codeLang: "sql" },
+    { label: "Key Point", text: "SELECT chooses which columns to return, and WHERE filters which rows are included." }
+  ]};
+}
+
+function logicGateResponse() {
+  return { sections: [
+    { label: "Explanation", text: "Logic gates process one or more binary inputs (0 or 1) to produce a single output based on a fixed rule." },
+    { label: "Example", text: "AND outputs 1 only if both inputs are 1. OR outputs 1 if at least one input is 1. NOT reverses a single input (0 becomes 1, 1 becomes 0)." },
+    { label: "Key Point", text: "These gates are the basic building blocks used to construct all digital circuits and processors." }
+  ]};
+}
+
+function cyberResponse(term) {
+  const facts = {
+    phishing: {
+      text: "Phishing is when an attacker sends a fake message, often pretending to be a trusted organisation, to trick someone into revealing personal information or clicking a malicious link.",
+      key: "Checking the sender's real email address and avoiding unexpected links is a simple first defence."
+    },
+    malware: {
+      text: "Malware is software deliberately designed to damage, disrupt, or gain unauthorised access to a computer system.",
+      key: "Viruses, worms, and ransomware are all types of malware, each spreading or acting differently."
+    },
+    encryption: {
+      text: "Encryption converts readable data into a scrambled form using an algorithm and a key, so it can't be understood without the correct key to reverse it.",
+      key: "Even if encrypted data is intercepted, it should be unreadable without the decryption key."
+    },
+    authentication: {
+      text: "Authentication is the process of verifying that a user really is who they claim to be, commonly using a password, PIN, or biometric check.",
+      key: "Using more than one authentication method (e.g. password plus a code) is called multi-factor authentication."
+    },
+    firewall: {
+      text: "A firewall monitors incoming and outgoing network traffic and blocks anything that doesn't match its security rules.",
+      key: "It acts as a barrier between a trusted internal network and untrusted external networks like the internet."
+    }
+  };
+  const f = facts[term];
+  return { sections: [
+    { label: "Explanation", text: f.text },
+    { label: "Key Point", text: f.key }
+  ]};
+}
+
+function ictResponse() {
+  return { sections: [
+    { label: "Explanation", text: "ICT (Information and Communication Technology) covers the hardware, software, and networks used to store, process, and share information." },
+    { label: "Key Point", text: "Common ICT topics include hardware vs software, networks, data handling, and using software tools effectively." }
+  ]};
+}
+
+function debugResponse(codeOrMessage) {
+  // Simple detection for a common beginner error: unclosed bracket.
+  const openParens = (codeOrMessage.match(/\(/g) || []).length;
+  const closeParens = (codeOrMessage.match(/\)/g) || []).length;
+
+  if (openParens > closeParens) {
+    return { sections: [
+      { label: "What Is Wrong", text: "The code is missing a closing bracket, so Python cannot tell where the statement ends." },
+      { label: "Why It Happens", text: "Every opening bracket \"(\" needs a matching closing bracket \")\". Python reports a SyntaxError when one is missing." },
+      { label: "Corrected Code", code: 'print("Hello")', codeLang: "python" }
+    ]};
+  }
+
+  return { sections: [
+    { label: "What Is Wrong", text: "There's likely a syntax or logic issue in the code you shared." },
+    { label: "Why It Happens", text: "Common causes include a missing colon, incorrect indentation, a missing bracket or quote, or comparing values with the wrong operator." },
+    { label: "Corrected Code", text: "Check that every bracket and quote is closed, each block ends with a colon (:), and indentation is consistent. Paste the exact error message for a more specific fix." }
+  ]};
+}
+
+function genericResponse(message) {
+  return { sections: [
+    { label: "Explanation", text: "Try breaking your question into smaller steps — what is the input, what processing happens, and what is the expected output? That usually reveals the underlying concept." },
+    { label: "Key Point", text: "Try rephrasing your question with a specific keyword (e.g. variable, loop, array, SQL) for a more detailed answer." }
+  ]};
+}
+
+/* ================================================================
+   WELCOME CARDS + SUGGESTED CHIPS
+   (Populate input only — never auto-submit, never consume a question)
+   ================================================================ */
+document.querySelectorAll(".starter-card, .chip").forEach(el => {
+  el.addEventListener("click", () => {
+    chatInput.value = el.dataset.example;
+    chatInput.dispatchEvent(new Event("input"));
+    chatInput.focus();
+  });
+});
+
+/* ================================================================
+   PLUS BUTTON MENU (UI only — never submits anything)
+   ================================================================ */
+const plusBtn = document.getElementById("plusBtn");
+plusBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  plusMenu.classList.toggle("open");
+});
+document.addEventListener("click", (e) => {
+  if (!plusMenu.contains(e.target) && e.target !== plusBtn) {
+    closePlusMenu();
+  }
+});
+function closePlusMenu() { plusMenu.classList.remove("open"); }
+
+document.getElementById("plusPasteCode").addEventListener("click", () => {
+  openDebugDrawer("Paste your code");
+  closePlusMenu();
+});
+document.getElementById("plusAskError").addEventListener("click", () => {
+  openDebugDrawer("Describe or paste your error");
+  closePlusMenu();
+});
+
+function openDebugDrawer(title) {
+  document.getElementById("debugDrawerTitle").textContent = title;
+  debugDrawer.classList.add("open");
+  debugTextarea.focus();
+}
+function closeDebugDrawer() {
+  debugDrawer.classList.remove("open");
+}
+document.getElementById("debugDrawerClose").addEventListener("click", closeDebugDrawer);
+
+debugTextarea.addEventListener("input", () => {
+  document.getElementById("debugSendBtn").disabled = debugTextarea.value.trim().length === 0 || limitReached();
+});
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+let toastTimer = null;
+function showToast(text) {
+  toastEl.textContent = text;
+  toastEl.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
+}
+
+/* ================================================================
+   AUTH + INIT
+   ================================================================ */
+async function ensureAuthenticated() {
+  if (authToken) return;
+  loginScreen.style.display = "flex";
+  loginUsername.focus();
+  return new Promise((resolve, reject) => { loginResolver = { resolve, reject }; });
+}
+
+loginForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  loginError.textContent = "";
+  loginButton.disabled = true;
+  try {
+    const response = await fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: loginUsername.value.trim(), password: loginPassword.value })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Invalid username or password");
+    authToken = data.token;
+    localStorage.setItem("imas_cs_tutor_token", authToken);
+    loginScreen.style.display = "none";
+    loginPassword.value = "";
+    loginResolver?.resolve();
+    loginResolver = null;
+  } catch (error) {
+    loginError.textContent = error.message || "Unable to sign in";
+  } finally {
+    loginButton.disabled = false;
+  }
+});
+
+async function initialize() {
+  try {
+    await ensureAuthenticated();
+    await loadUsage();
+    loginScreen.style.display = "none";
+  } catch (error) {
+    loginError.textContent = error.message || "Unable to load your session";
+  }
+  renderConversation();
+  updateSendButtonState();
+}
+
+initialize();
+</script>
+</body>
+</html>
