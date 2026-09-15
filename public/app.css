@@ -1,0 +1,51 @@
+.workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(102,126,234,0.96), rgba(118,75,162,0.96));
+}
+.login-card {
+  width: min(100%, 390px);
+  background: #fff;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: var(--shadow-lift);
+}
+.login-card h1 { margin: 0 0 8px; font-size: 24px; }
+.login-card p { margin: 0 0 22px; color: var(--text-secondary); font-size: 14px; }
+.login-card label { display: block; margin: 14px 0 6px; font-size: 13px; font-weight: 700; }
+.login-card input {
+  width: 100%;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--control-radius);
+  padding: 11px 12px;
+  font: inherit;
+}
+.login-card button {
+  width: 100%;
+  margin-top: 20px;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: var(--control-radius);
+  background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+  color: #fff;
+  font-weight: 700;
+}
+.login-card button:disabled { background: #cbd5e0; cursor: wait; }
+.login-error { min-height: 18px; margin-top: 12px !important; margin-bottom: 0 !important; color: #9b2c2c !important; }
+.auth-switch { background: none !important; color: var(--secondary-purple) !important; margin-top: 10px !important; padding: 6px !important; }
+.guest-note { font-size: 12px !important; color: #718096 !important; margin: 14px 0 0 !important; }
+.account-area { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.account-name { color: var(--text-secondary); font-size: 13px; font-weight: 600; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-button { border: 1px solid var(--border-color); border-radius: 8px; background: #fff; color: var(--secondary-purple); padding: 7px 11px; font-size: 12px; font-weight: 700; }
+.account-button:hover { border-color: var(--primary-purple); background: #eef0ff; }

@@ -18,7 +18,12 @@ export type TutorResponse = {
 
 export type Usage = { used: number; limit: number };
 
-export type AuthUser = { id: string; username: string; displayName: string };
+export type AuthUser = {
+  id: string;
+  username: string;
+  displayName: string;
+  isGuest?: boolean;
+};
 
 declare global {
   namespace Express {

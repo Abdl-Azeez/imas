@@ -9,6 +9,7 @@ function required(name: string): string {
 export const config = {
   port: Number(process.env.PORT ?? 3000),
   jwtSecret: required("JWT_SECRET"),
+  adminResetToken: process.env.ADMIN_RESET_TOKEN,
   aiProvider: process.env.AI_PROVIDER ?? "openai",
   openAiKey: process.env.OPENAI_API_KEY,
   openAiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",

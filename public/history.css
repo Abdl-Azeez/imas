@@ -1,0 +1,82 @@
+.history-sidebar {
+  width: 238px;
+  flex: 0 0 238px;
+  display: flex;
+  flex-direction: column;
+  background: #fbfcff;
+  border-right: 1px solid var(--border-color);
+  min-height: 0;
+}
+.history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 14px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+.history-title {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.new-chat-btn {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--secondary-purple);
+  font-size: 18px;
+  line-height: 1;
+  width: 30px;
+  height: 30px;
+}
+.new-chat-btn:hover { border-color: var(--primary-purple); background: #eef0ff; }
+.history-list {
+  overflow-y: auto;
+  padding: 8px;
+  margin: 0;
+  list-style: none;
+}
+.history-empty {
+  padding: 16px 8px;
+  color: #9aa5b1;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.history-item {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 10px;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-item:hover { background: #eef0ff; color: var(--secondary-purple); }
+.history-item.active { background: #e5e8ff; color: var(--secondary-purple); font-weight: 700; }
+.history-entry { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.history-entry .history-item { min-width: 0; flex: 1; }
+.delete-history-btn {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #9aa5b1;
+  font-size: 14px;
+}
+.delete-history-btn:hover { background: #fff0f0; color: var(--danger-red); }
+@media (max-width: 720px) {
+  .history-sidebar { width: 100%; flex-basis: auto; max-height: 132px; border-right: 0; border-bottom: 1px solid var(--border-color); }
+  .history-head { padding: 10px 14px 8px; }
+  .history-list { display: flex; gap: 6px; overflow-x: auto; padding: 6px 10px 10px; }
+  .history-item { min-width: 180px; }
+}

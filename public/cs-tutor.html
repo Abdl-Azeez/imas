@@ -1,0 +1,143 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMAS CS Tutor</title>
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="history.css">
+<link rel="stylesheet" href="tutor.css">
+
+</head>
+<body>
+
+<div id="app">
+  <div class="frame">
+    <div class="topbar">
+      <div class="logo-mark">
+        <!-- Placeholder for the real IMAS logo asset.
+             Replace with: <img class="logo-img" src="imas-logo.png" alt="IMAS"> -->
+        <div class="logo-badge" aria-hidden="true">IMAS</div>
+      </div>
+
+      <div class="usage-pill" id="usagePill">
+        <span class="dot"></span>
+        <span id="usageCount">Questions used: 0 / 10</span>
+      </div>
+
+      <div class="account-area">
+        <span class="account-name" id="accountName">Guest</span>
+        <button class="account-button" id="accountButton" type="button">Sign in</button>
+      </div>
+    </div>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <div class="workspace">
+      <aside class="history-sidebar" id="historySidebar" aria-label="Conversation history">
+        <div class="history-head">
+          <h2 class="history-title">History</h2>
+          <button class="new-chat-btn" id="newConversationBtn" type="button" aria-label="Start a new conversation" title="New conversation">+</button>
+        </div>
+        <ol class="history-list" id="historyList"></ol>
+      </aside>
+
+    <div class="main-content">
+
+      <div class="chat-scroll" id="chatScroll">
+
+        <!-- Welcome screen (shown when conversation is empty) -->
+        <div class="welcome-wrap" id="welcomeWrap">
+          <h2 class="welcome-heading">Welcome to the IMAS CS Tutor</h2>
+          <p class="tagline">Your Computer Science Learning Assistant</p>
+          <p class="sub">What would you like help with today?</p>
+
+          <div class="starter-grid">
+            <button class="starter-card" data-example="What is a variable?">
+              <div class="title">Explain a Concept</div>
+              <div class="example">"What is a variable?"</div>
+            </button>
+            <button class="starter-card" data-example="How do I use a FOR loop in Python?">
+              <div class="title">Python Help</div>
+              <div class="example">"How do I use a FOR loop in Python?"</div>
+            </button>
+            <button class="starter-card" data-example="Why is my Python code giving an error?">
+              <div class="title">Debug My Code</div>
+              <div class="example">"Why is my Python code giving an error?"</div>
+            </button>
+            <button class="starter-card" data-example="Help me understand this pseudocode question.">
+              <div class="title">Solve a Problem</div>
+              <div class="example">"Help me understand this pseudocode question."</div>
+            </button>
+          </div>
+
+          <div class="suggested-label">Suggested questions</div>
+          <div class="chip-row" id="chipRow">
+            <button class="chip" data-example="What is a constant?">What is a constant?</button>
+            <button class="chip" data-example="Explain a FOR loop.">Explain a FOR loop.</button>
+            <button class="chip" data-example="What is an array?">What is an array?</button>
+            <button class="chip" data-example="How does an IF statement work?">How does an IF statement work?</button>
+            <button class="chip" data-example="Why does my Python code give an error?">Why does my Python code give an error?</button>
+          </div>
+        </div>
+
+        <!-- Message list (hidden until first message) -->
+        <div id="messageList" style="display:none;"></div>
+
+      </div>
+
+      <!-- ==================== INPUT AREA ==================== -->
+      <div class="input-area">
+
+        <div class="limit-banner" id="limitBanner">
+          You have used all available questions for this period. You can continue using the tutor when your next period begins.
+        </div>
+
+        <!-- Paste code / error drawer (available via the + button) -->
+        <div class="debug-drawer" id="debugDrawer">
+          <div class="debug-drawer-head">
+            <span id="debugDrawerTitle">Paste your code</span>
+            <button id="debugDrawerClose" aria-label="Close panel">Close</button>
+          </div>
+          <textarea id="debugTextarea" placeholder="Paste your code or error here..."></textarea>
+          <div class="debug-footer">
+            <button class="debug-send-btn" id="debugSendBtn">Send</button>
+          </div>
+        </div>
+
+        <div style="position:relative;">
+          <div class="plus-menu" id="plusMenu">
+            <button id="plusPasteCode">Paste Code</button>
+            <button id="plusAskError">Ask About an Error</button>
+          </div>
+
+          <div class="input-shell">
+            <button class="plus-btn" id="plusBtn" aria-label="More input options" aria-haspopup="true">+</button>
+            <textarea id="chat-input" rows="1" placeholder="Ask your Computer Science question..." aria-label="Your question"></textarea>
+            <button class="send-btn" id="sendBtn" disabled aria-label="Send question">Send</button>
+          </div>
+        </div>
+
+        <div class="below-input-row">
+          <div class="usage-footer">
+            <span id="usageFooterText">Questions used: 0 / 10</span>
+            <span class="reset-note" id="resetNote"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="auth.js"></script>
+<script src="response-renderer.js"></script>
+<script src="tutor-app.js"></script>
+<script src="history.js"></script>
+
+</body>
+</html>
+
+

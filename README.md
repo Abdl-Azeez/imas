@@ -13,6 +13,16 @@ Runnable Express + TypeScript POC for the guided-response tutor in `IMAS-CS-Tuto
 
 The development database is created at `data/imas.sqlite`. A demo account is created automatically on first startup: username `demo`, password `demo1234`.
 
+To reset the demo account's daily usage, configure a private `ADMIN_RESET_TOKEN` environment variable, then use:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri https://YOUR-RENDER-SERVICE.onrender.com/dev/reset-demo-usage -Headers @{ "x-admin-reset-token" = "your-private-reset-token" }
+
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/dev/reset-demo-usage
+```
+
+The route returns 404 unless the secret header matches `ADMIN_RESET_TOKEN`. Never put this token in frontend code or commit it to git.
+
 ## Production notes
 
 This POC uses SQLite so it runs without external services. For Render, set `DATABASE_PATH` to a persistent mount or replace the repository with Postgres using `schema.sql`; the API boundary and data model are already separated in `src/store.ts`. Set `OPENAI_API_KEY`, `JWT_SECRET`, and `NODE_ENV=production` as Render environment variables, never in source control.
