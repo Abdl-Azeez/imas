@@ -24,7 +24,7 @@ import {
   saveTutorMessage,
   resetStudentUsage,
   seedDemoStudent,
-  updateGuidanceLevel,
+  updateGuidanceState,
 } from "./store.js";
 
 const app = express();
@@ -202,8 +202,11 @@ app.post("/chat", chatLimiter, requireAuth, async (req, res) => {
 
   try {
     saveStudentMessage(conversation.id, input.data.message);
+    // guidance_state is a per-part map ({ main: 0 } or { a: 1, b: 0 }), not a
+    // single number - default to {} for a brand new conversation.
+    const guidanceState = conversation.guidance_state ?? {};
     const result = await generateTutorResponse(
-      conversation.guidance_level,
+      guidanceState,
       input.data.mode,
       input.data.message,
       history,
@@ -213,7 +216,7 @@ app.post("/chat", chatLimiter, requireAuth, async (req, res) => {
       result.response,
       result.tokensUsed,
     );
-    updateGuidanceLevel(conversation.id, result.response.guidanceLevel);
+    updateGuidanceState(conversation.id, result.guidanceState);
     if (countsAsQuestion)
       guest
         ? incrementGuestUsage(req.user!.id, result.tokensUsed)
@@ -266,4 +269,6 @@ app.post("/messages/:id/feedback", requireAuth, (req, res) => {
 app.get("*", (_req, res) =>
   res.sendFile(join(process.cwd(), "public", "cs-tutor.html")),
 );
-app.listen(config.port, () => console.log(`IMAS CS Tutor listening on http://localhost:${config.port}`));
+app.listen(config.port, () =>
+  console.log(`IMAS CS Tutor listening on http://localhost:${config.port}`),
+);

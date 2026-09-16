@@ -5,10 +5,37 @@ import { config } from "./config.js";
 import type { AuthUser, TutorResponse } from "./types.js";
 
 mkdirSync(dirname(config.databasePath), { recursive: true });
-type StudentRow = { id: string; username: string; display_name: string; password_hash: string; daily_limit: number };
-type ConversationRow = { id: string; student_id: string; guidance_level: number };
-type MessageRow = { id: string; conversation_id: string; role: "student" | "tutor"; content_json: string; student_progress?: string; tokens_used: number };
-type UsageRow = { student_id: string; usage_date: string; questions_used: number; tokens_used: number };
+
+// Per-question-part guidance tracking: { main: 0 } for an ordinary question,
+// { a: 1, b: 0 } for a multi-part exam question. See tutor.ts.
+export type GuidanceState = Record<string, number>;
+
+type StudentRow = {
+  id: string;
+  username: string;
+  display_name: string;
+  password_hash: string;
+  daily_limit: number;
+};
+type ConversationRow = {
+  id: string;
+  student_id: string;
+  guidance_state: GuidanceState;
+};
+type MessageRow = {
+  id: string;
+  conversation_id: string;
+  role: "student" | "tutor";
+  content_json: string;
+  student_progress?: string;
+  tokens_used: number;
+};
+type UsageRow = {
+  student_id: string;
+  usage_date: string;
+  questions_used: number;
+  tokens_used: number;
+};
 type FeedbackRow = { id: string; message_id: string; helpful: number };
 type GuestUsageRow = {
   guest_id: string;
@@ -37,6 +64,23 @@ let data: StoreData = existsSync(config.databasePath)
   ? JSON.parse(readFileSync(config.databasePath, "utf8"))
   : emptyStore();
 data.guest_usage ??= [];
+
+// Migration for data.json files written before per-part guidance tracking:
+// any conversation still carrying the old numeric `guidance_level` (or
+// missing guidance_state entirely) gets a fresh empty state instead of
+// crashing the type checks / logic downstream.
+for (const conversation of data.conversations as Array<
+  ConversationRow & { guidance_level?: number }
+>) {
+  if (
+    !conversation.guidance_state ||
+    typeof conversation.guidance_state !== "object"
+  ) {
+    conversation.guidance_state = {};
+  }
+  delete conversation.guidance_level;
+}
+
 function persist() {
   writeFileSync(config.databasePath, JSON.stringify(data, null, 2));
 }
@@ -156,9 +200,14 @@ export function getOrCreateConversation(
     if (existing) return existing;
   }
   const id = randomUUID();
-  data.conversations.push({ id, student_id: studentId, guidance_level: 0 });
+  const conversation: ConversationRow = {
+    id,
+    student_id: studentId,
+    guidance_state: {},
+  };
+  data.conversations.push(conversation);
   persist();
-  return { id, student_id: studentId, guidance_level: 0 };
+  return conversation;
 }
 
 export function getConversationMessages(conversationId: string) {
@@ -218,24 +267,50 @@ export function deleteConversation(studentId: string, conversationId: string) {
 }
 
 export function saveStudentMessage(conversationId: string, text: string) {
-  data.messages.push({ id: randomUUID(), conversation_id: conversationId, role: "student", content_json: JSON.stringify({ text }), tokens_used: 0 });
+  data.messages.push({
+    id: randomUUID(),
+    conversation_id: conversationId,
+    role: "student",
+    content_json: JSON.stringify({ text }),
+    tokens_used: 0,
+  });
   persist();
 }
 
-export function saveTutorMessage(conversationId: string, response: TutorResponse, tokensUsed: number) {
+export function saveTutorMessage(
+  conversationId: string,
+  response: TutorResponse,
+  tokensUsed: number,
+) {
   const id = randomUUID();
-  data.messages.push({ id, conversation_id: conversationId, role: "tutor", content_json: JSON.stringify(response), student_progress: response.studentProgress, tokens_used: tokensUsed });
+  data.messages.push({
+    id,
+    conversation_id: conversationId,
+    role: "tutor",
+    content_json: JSON.stringify(response),
+    student_progress: response.studentProgress,
+    tokens_used: tokensUsed,
+  });
   persist();
   return id;
 }
 
-export function updateGuidanceLevel(conversationId: string, level: number) {
-  const conversation = data.conversations.find(item => item.id === conversationId);
-  if (conversation) conversation.guidance_level = level;
+export function updateGuidanceState(
+  conversationId: string,
+  guidanceState: GuidanceState,
+) {
+  const conversation = data.conversations.find(
+    (item) => item.id === conversationId,
+  );
+  if (conversation) conversation.guidance_state = guidanceState;
   persist();
 }
 
 export function saveFeedback(messageId: string, helpful: boolean) {
-  data.feedback.push({ id: randomUUID(), message_id: messageId, helpful: helpful ? 1 : 0 });
+  data.feedback.push({
+    id: randomUUID(),
+    message_id: messageId,
+    helpful: helpful ? 1 : 0,
+  });
   persist();
 }
