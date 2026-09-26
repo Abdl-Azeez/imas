@@ -5,29 +5,20 @@ import { z } from "zod";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { config } from "./config.js";
-import { authenticate, hashPassword, issueToken, requireAuth } from "./auth.js";
 import { generateTutorResponse } from "./tutor.js";
 import {
-  createStudent,
   deleteConversation,
   getConversationMessages,
-  getGuestUsage,
   getOrCreateConversation,
-  getUsage,
-  incrementGuestUsage,
-  incrementUsage,
   listConversations,
-  ownsConversation,
-  publicUser,
   saveFeedback,
   saveStudentMessage,
   saveTutorMessage,
-  resetStudentUsage,
-  seedDemoStudent,
   updateGuidanceState,
 } from "./store.js";
 
 const app = express();
+app.set("trust proxy", 1);
 app.disable("x-powered-by");
 app.use(compression());
 app.use(express.json({ limit: "32kb" }));
@@ -40,97 +31,13 @@ const chatLimiter = rateLimit({
   message: { error: "Too many requests. Please wait a moment." },
 });
 
-seedDemoStudent(await hashPassword("demo1234"));
-
-app.post("/auth/login", async (req, res) => {
-  const input = z
-    .object({
-      username: z.string().min(1).max(80),
-      password: z.string().min(1).max(200),
-    })
-    .safeParse(req.body);
-  if (!input.success)
-    return res
-      .status(400)
-      .json({ error: "Username and password are required" });
-  const user = await authenticate(input.data.username, input.data.password);
-  if (!user)
-    return res.status(401).json({ error: "Invalid username or password" });
-  return res.json({ token: issueToken(user), user });
+app.get("/usage/today", (_req, res) => {
+  return res.json({ used: 0, limit: 0, resetsAt: new Date().toISOString() });
 });
 
-app.post("/auth/register", async (req, res) => {
-  const input = z
-    .object({
-      username: z
-        .string()
-        .trim()
-        .min(3)
-        .max(40)
-        .regex(/^[a-zA-Z0-9_.-]+$/),
-      displayName: z.string().trim().min(1).max(80),
-      password: z.string().min(8).max(200),
-    })
-    .safeParse(req.body);
-  if (!input.success)
-    return res.status(400).json({
-      error:
-        "Use a username, display name, and password of at least 8 characters.",
-    });
-  const student = createStudent(
-    input.data.username,
-    input.data.displayName,
-    await hashPassword(input.data.password),
-  );
-  if (!student)
-    return res.status(409).json({ error: "That username is already in use." });
-  const user = publicUser(student);
-  return res.status(201).json({ token: issueToken(user), user });
-});
-
-app.post("/auth/guest", (_req, res) => {
-  const user = {
-    id: `guest-${randomUUID()}`,
-    username: "guest",
-    displayName: "Guest",
-    isGuest: true,
-  };
-  return res.json({ token: issueToken(user), user });
-});
-
-app.get("/auth/me", requireAuth, (req, res) => {
-  return res.json({ user: req.user });
-});
-
-app.get("/usage/today", requireAuth, (req, res) => {
-  const usage =
-    req.user!.isGuest || req.user!.username === "guest"
-      ? getGuestUsage(req.user!.id)
-      : getUsage(req.user!.id);
-  const tomorrow = new Date(`${usage.date}T00:00:00Z`);
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  return res.json({
-    used: usage.used,
-    limit: usage.limit,
-    resetsAt: tomorrow.toISOString(),
-  });
-});
-
-app.post("/dev/reset-demo-usage", (req, res) => {
-  const suppliedToken = req.header("x-admin-reset-token");
-  if (!config.adminResetToken || suppliedToken !== config.adminResetToken) {
-    return res.status(404).json({ error: "Not found" });
-  }
-  resetStudentUsage("demo");
-  return res.json({ username: "demo", used: 0, limit: config.dailyLimit });
-});
-
-app.get("/conversations/:id", requireAuth, (req, res) => {
+app.get("/conversations/:id", (req, res) => {
   const conversationId = String(req.params.id);
-  if (
-    !z.string().uuid().safeParse(conversationId).success ||
-    !ownsConversation(req.user!.id, conversationId)
-  ) {
+  if (!z.string().uuid().safeParse(conversationId).success) {
     return res.status(404).json({ error: "Conversation not found" });
   }
   const messages = getConversationMessages(conversationId).map((message) => {
@@ -142,16 +49,13 @@ app.get("/conversations/:id", requireAuth, (req, res) => {
   return res.json({ conversationId, messages });
 });
 
-app.get("/conversations", requireAuth, (req, res) => {
-  return res.json({ conversations: listConversations(req.user!.id) });
+app.get("/conversations", (_req, res) => {
+  return res.json({ conversations: listConversations("anonymous") });
 });
 
-app.delete("/conversations/:id", requireAuth, (req, res) => {
+app.delete("/conversations/:id", (req, res) => {
   const conversationId = String(req.params.id);
-  if (
-    !z.string().uuid().safeParse(conversationId).success ||
-    !deleteConversation(req.user!.id, conversationId)
-  ) {
+  if (!z.string().uuid().safeParse(conversationId).success || !deleteConversation("anonymous", conversationId)) {
     return res.status(404).json({ error: "Conversation not found" });
   }
   return res.status(204).send();
@@ -167,7 +71,7 @@ function isGuestUser(req: express.Request) {
   return Boolean(req.user?.isGuest || req.user?.username === "guest");
 }
 
-app.post("/chat", chatLimiter, requireAuth, async (req, res) => {
+app.post("/chat", chatLimiter, async (req, res) => {
   const input = z
     .object({
       conversationId: z.string().uuid().nullable().optional(),
@@ -179,20 +83,10 @@ app.post("/chat", chatLimiter, requireAuth, async (req, res) => {
     return res
       .status(400)
       .json({ error: "A message of up to 12,000 characters is required" });
-  const countsAsQuestion = !isGreeting(input.data.message);
-  const guest = isGuestUser(req);
-  const usage = guest ? getGuestUsage(req.user!.id) : getUsage(req.user!.id);
-  if (countsAsQuestion && usage.used >= usage.limit)
-    return res.status(429).json({
-      error: guest
-        ? "Guest questions used. Create an account to continue."
-        : "Daily question limit reached",
-      usage: { used: usage.used, limit: usage.limit },
-      requiresAccount: guest,
-    });
 
+  const userId = "anonymous";
   const conversation = getOrCreateConversation(
-    req.user!.id,
+    userId,
     input.data.conversationId ?? undefined,
   );
   const history = getConversationMessages(conversation.id).map((item) => {
@@ -202,8 +96,6 @@ app.post("/chat", chatLimiter, requireAuth, async (req, res) => {
 
   try {
     saveStudentMessage(conversation.id, input.data.message);
-    // guidance_state is a per-part map ({ main: 0 } or { a: 1, b: 0 }), not a
-    // single number - default to {} for a brand new conversation.
     const guidanceState = conversation.guidance_state ?? {};
     const result = await generateTutorResponse(
       guidanceState,
@@ -217,18 +109,11 @@ app.post("/chat", chatLimiter, requireAuth, async (req, res) => {
       result.tokensUsed,
     );
     updateGuidanceState(conversation.id, result.guidanceState);
-    if (countsAsQuestion)
-      guest
-        ? incrementGuestUsage(req.user!.id, result.tokensUsed)
-        : incrementUsage(req.user!.id, result.tokensUsed);
-    const nextUsage = guest
-      ? getGuestUsage(req.user!.id)
-      : getUsage(req.user!.id);
     return res.json({
       conversationId: conversation.id,
       messageId,
       ...result.response,
-      usage: { used: nextUsage.used, limit: nextUsage.limit },
+      usage: { used: 0, limit: 0 },
     });
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
@@ -258,7 +143,7 @@ app.post("/chat", chatLimiter, requireAuth, async (req, res) => {
   }
 });
 
-app.post("/messages/:id/feedback", requireAuth, (req, res) => {
+app.post("/messages/:id/feedback", (req, res) => {
   const input = z.object({ helpful: z.boolean() }).safeParse(req.body);
   if (!input.success)
     return res.status(400).json({ error: "helpful must be true or false" });

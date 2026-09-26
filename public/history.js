@@ -31,10 +31,7 @@
       deleteButton.addEventListener("click", async event => {
         event.stopPropagation();
         if (!window.confirm("Delete this conversation? This cannot be undone.")) return;
-        const response = await fetch(`/conversations/${item.id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${window.authToken}` }
-        });
+        const response = await fetch(`/conversations/${item.id}`, { method: "DELETE" });
         if (!response.ok) return;
         if (window.conversationId === item.id) {
           window.conversationId = null;
@@ -50,15 +47,14 @@
   }
 
   async function refresh() {
-    if (!window.authToken) return;
-    const response = await fetch("/conversations", { headers: { Authorization: `Bearer ${window.authToken}` } });
+    const response = await fetch("/conversations");
     if (!response.ok) return;
     render((await response.json()).conversations);
   }
 
   window.refreshConversationList = refresh;
   window.openConversation = async function (id) {
-    const response = await fetch(`/conversations/${id}`, { headers: { Authorization: `Bearer ${window.authToken}` } });
+    const response = await fetch(`/conversations/${id}`);
     if (!response.ok) return;
     const data = await response.json();
     window.conversationId = data.conversationId;

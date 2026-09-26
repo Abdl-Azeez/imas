@@ -412,6 +412,8 @@ const BANNED_GENERIC_PHRASES = [
   /break a multi-part task into one smaller decision at a time/i,
   /which part of the problem feels least clear/i,
   /underline the important nouns and verbs/i,
+  /what do you already know about \".*\" and which part of the question would you try first\?/i,
+  /focus on what \".*\" specifically means here/i,
 ];
 
 function matchesBannedGenericPhrase(response: z.infer<typeof responseSchema>) {
@@ -487,65 +489,71 @@ function fallbackGuidedResponse(
   const terms = keyTerms(message);
   const topTerm = terms[0];
 
-  let guidingQuestion = topTerm
-    ? `What do you already know about "${topTerm}", and which part of the question would you try first?`
-    : "What do you already know about the main concept in this question, and which part would you try first?";
-  let hint = topTerm
-    ? `Focus on what "${topTerm}" specifically means here, then identify what the system must store, process, or produce.`
-    : "Underline the important nouns and verbs in the question, then identify what the system must store, process, or produce.";
+  let opener =
+    "Let's build this together rather than giving you the full answer.";
+  let guidingQuestion =
+    "What is the first thing your program or algorithm needs to do here?";
+  let hint =
+    "Think about the key action in the problem and the input it needs before you write any code.";
+
+  if (topTerm) {
+    opener = `Let's build this together rather than jumping straight to the answer. What do you already know about ${topTerm}?`;
+  }
 
   if (/binary search|sorted|book id|identification number/.test(question)) {
+    opener = "Let's build this together rather than jumping straight to the answer. What do you already know about binary search or sorted data?";
     guidingQuestion =
-      "Before choosing the data structure, what property must the book IDs have for binary search to work, and what would you compare first?";
+      "Before you pick a data structure, what must be true about the book IDs for binary search to work?";
     hint =
-      "Binary search repeatedly compares a target with a middle value and discards half the remaining values. Think about how the IDs need to be arranged.";
+      "Think about the order of the values and what you compare first when searching. The idea is to eliminate half the list each time.";
   } else if (
     /array|list|data structure|stack|queue|linked list|tree|record/.test(
       question,
     )
   ) {
+    opener = "Let's work through this carefully. What do you already know about the data structure in this question?";
     guidingQuestion =
-      "What operations does the problem need most often: searching, inserting, removing, or accessing by position? Which data structure do you already associate with those operations?";
+      "What operations does the problem need most: searching, inserting, removing, or accessing by position?";
     hint =
-      "Choose a structure by matching its strengths to the required operation, not only by the amount of data it stores.";
+      "Choose the structure based on the operation it is best at, not just because it can store data.";
   } else if (/for\s+loop/.test(question)) {
-  guidingQuestion =
-    "What do you already know about a FOR loop, and what do you think happens to its control variable after each repetition?";
-
-  hint =
-    "Think about the three main parts of a FOR loop: where the control variable starts, how it changes, and when the loop stops.";
-
-} else if (/while\s+loop/.test(question)) {
-  guidingQuestion =
-    "What do you already know about a WHILE loop, and what condition do you think is checked before each repetition?";
-
-  hint =
-    "Focus on the condition of the WHILE loop: the loop continues only while that condition remains true.";
-
-} else if (/do\s*while\s+loop/.test(question)) {
-  guidingQuestion =
-    "What do you already know about a DO-WHILE loop, and when do you think its condition is checked?";
-
-  hint =
-    "Think about the difference between checking the condition before the loop body and checking it after the loop body.";
-  } else if (/if |selection|condition|boolean/.test(question)) {
+    opener = "Let's build this together. What do you already know about a FOR loop in this task?";
     guidingQuestion =
-      "What condition needs to be checked, and what should happen when it is true versus false?";
+      "What should happen each time the loop repeats, and what should make it stop?";
     hint =
-      "Separate the decision from the actions: first write what is being compared, then consider both possible outcomes.";
+      "Start by thinking about the starting value, the change each time, and the condition for stopping.";
+  } else if (/while\s+loop/.test(question)) {
+    opener = "Let's work through the logic together. What do you already know about a WHILE loop here?";
+    guidingQuestion =
+      "What condition needs to stay true for the loop to keep repeating?";
+    hint =
+      "The loop should keep going only while the condition is true, and stop as soon as it becomes false.";
+  } else if (/do\s*while\s+loop/.test(question)) {
+    opener = "Let's break it down carefully. What do you already know about a DO-WHILE loop in this question?";
+    guidingQuestion =
+      "When do you think the condition is checked in a DO-WHILE loop, and why does that matter?";
+    hint =
+      "The body runs once before the condition is checked, so the order is different from a WHILE loop.";
+  } else if (/if |selection|condition|boolean/.test(question)) {
+    opener = "Let's unpick the decision step by step. What do you already know about the condition in this problem?";
+    guidingQuestion =
+      "What should happen when the condition is true, and what should happen when it is false?";
+    hint =
+      "Separate the decision from the action. First identify the check, then decide the two outcomes.";
   } else if (
     /error|bug|traceback|doesn't work|syntax/.test(question) ||
     mode === "debug"
   ) {
+    opener = "You're close — let's debug it together. What do you expect this code to do, and what does it actually do?";
     guidingQuestion =
-      "What did you expect this code to do, what did it actually do, and which line seems to be the first point of difference?";
+      "At what point do the actual result and the expected result start to differ?";
     hint =
-      "Classify the issue before changing code: syntax, data type, logic, or boundary/off-by-one error.";
+      "Check the issue type first: syntax, data type, logic, or boundary/off-by-one error.";
   }
 
   return {
     sections: [
-      { label: "Let's Think", text: guidingQuestion },
+      { label: "Let's Think", text: `${opener} ${guidingQuestion}` },
       { label: "Hint", text: hint },
     ],
     questionType: mode === "debug" ? "debug" : "conceptual",
@@ -571,8 +579,8 @@ MESSAGE CLASSIFICATION: The exact latest message is: ${JSON.stringify(message)}.
 If this is a casual message, respond naturally and briefly without inventing a Computer Science question, explanation, hint, code, or lesson. Use one short Reply section, set questionType to factual, studentProgress to no_attempt, activePart to "main", and keep guidanceLevel unchanged.
 If the question has lettered sub-parts, address ONLY the sub-part the student's latest message is actually about (or the earliest unaddressed part if they haven't specified one). Use that part's guidance level from the table above - do not mix levels across parts, and do not answer more than one part at once.
 If the question has no lettered sub-parts, use activePart "main" and its level from the table above.
-SPECIFICITY REQUIREMENT: your guiding question and hint must explicitly name the specific topic, data structure, algorithm, syntax construct, or exam sub-part found in the student's actual message. These exact sentences are BANNED, verbatim or close paraphrase, no matter the question: "Which part of the problem feels least clear? Identify the input, the operation the system must perform, and the expected result." and "Break a multi-part task into one smaller decision at a time. Begin with the requirement in part (a), then explain your choice before moving on." and "Underline the important nouns and verbs in the question." These are generic templates that could apply to any scenario question and prove you have not engaged with this specific one. ${terms.length ? `Specific terms/concepts detected in this message: ${terms.join(", ")}. Your guiding question and hint must reference at least one of these directly.` : ""}
-At level 0 for the relevant part, in addition to the guiding question, ask what the student already knows or has already tried about the specific concept named above - this is more useful than a generic process question.
+SPECIFICITY REQUIREMENT: your guiding question and hint must explicitly name the specific topic, data structure, algorithm, syntax construct, or exam sub-part found in the student's actual message. Avoid generic template wording and sound like a teacher helping a student think, not a script. Use the tone of the attached examples: supportive, conversational, and adaptive. For example, phrases like "Let's build this together", "You're close", "What do you already know about ...", and "What happens next?" are encouraged when appropriate. These are BANNED, verbatim or close paraphrase: "Which part of the problem feels least clear? Identify the input, the operation the system must perform, and the expected result.", "Break a multi-part task into one smaller decision at a time...", and "Underline the important nouns and verbs in the question." ${terms.length ? `Specific terms/concepts detected in this message: ${terms.join(", ")}. Your guiding question and hint must reference at least one of these directly.` : ""}
+At level 0 for the relevant part, ask the student what they already know or have tried about the specific concept named above, then ask one targeted follow-up question based on that concept. Do not write a generic meta-question.
 QUESTION TYPE CLASSIFICATION:
 
 A factual question asks for one short, fixed piece of information that can

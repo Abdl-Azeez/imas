@@ -15,19 +15,12 @@
   <div class="frame">
     <div class="topbar">
       <div class="logo-mark">
-        <!-- Placeholder for the real IMAS logo asset.
-             Replace with: <img class="logo-img" src="imas-logo.png" alt="IMAS"> -->
-        <div class="logo-badge" aria-hidden="true">IMAS</div>
+        <img class="logo-img" src="Logo.jpeg" alt="IMAS logo">
       </div>
 
-      <div class="usage-pill" id="usagePill">
+      <div class="usage-pill" id="usagePill" style="display:none;">
         <span class="dot"></span>
         <span id="usageCount">Questions used: 0 / 10</span>
-      </div>
-
-      <div class="account-area">
-        <span class="account-name" id="accountName">Guest</span>
-        <button class="account-button" id="accountButton" type="button">Sign in</button>
       </div>
     </div>
 
@@ -70,14 +63,6 @@
             </button>
           </div>
 
-          <div class="suggested-label">Suggested questions</div>
-          <div class="chip-row" id="chipRow">
-            <button class="chip" data-example="What is a constant?">What is a constant?</button>
-            <button class="chip" data-example="Explain a FOR loop.">Explain a FOR loop.</button>
-            <button class="chip" data-example="What is an array?">What is an array?</button>
-            <button class="chip" data-example="How does an IF statement work?">How does an IF statement work?</button>
-            <button class="chip" data-example="Why does my Python code give an error?">Why does my Python code give an error?</button>
-          </div>
         </div>
 
         <!-- Message list (hidden until first message) -->
@@ -119,7 +104,7 @@
 
         <div class="below-input-row">
           <div class="usage-footer">
-            <span id="usageFooterText">Questions used: 0 / 10</span>
+            <span id="usageFooterText" style="display: none;">Questions used: 0 / 10</span>
             <span class="reset-note" id="resetNote"></span>
           </div>
         </div>

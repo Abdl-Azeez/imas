@@ -1,47 +1,10 @@
-﻿/* ================================================================
-   IMAS CS TUTOR â€” APPLICATION LOGIC
-   Front-end prototype only. All tutor responses are MOCKED below.
-   The word "AI" is intentionally never shown to the student.
-   ================================================================
-
-   FUTURE PRODUCTION ARCHITECTURE:
-
-     Student Browser
-            â†“
-     IMAS Google Authentication
-            â†“
-     Secure IMAS Backend
-            â†“
-     Check student's IMAS email
-            â†“
-     Check current two-week usage
-            â†“
-     If fewer than 10:  process request via OpenAI, increase usage by 1, return response
-     If 10:              reject request, show limit message
-            â†“
-     Student Browser
-
-   The backend is the single source of truth for identity and usage.
-   It must:
-     - Identify the student by their authenticated IMAS Google email
-       (never by localStorage, cookies alone, device ID, or IP)
-     - Track { studentEmail, periodStart, periodEnd, questionsUsed, limit }
-     - Enforce the 10-question two-week limit server-side
-     - Control how much conversation history is sent to OpenAI
-     - Keep the OpenAI API key on the server only â€” it must never
-       reach this file or the browser.
-
-   This front-end prototype uses localStorage ONLY to demonstrate
-   the experience. It is NOT the real security mechanism.
-   ================================================================ */
-
-const QUESTION_LIMIT = 10;
-var conversation = [];      // { role: 'student' | 'tutor' | 'error', ...content }
+﻿const QUESTION_LIMIT = 10;
+var conversation = [];
 let usedThisPeriod = 0;
 let questionLimit = QUESTION_LIMIT;
 let isWaitingForResponse = false;
 var conversationId = null;
-var authToken = localStorage.getItem("imas_cs_tutor_token");
+var authToken = "";
 const STORAGE_KEY_CONVERSATION = "imas_cs_tutor_conversation_id";
 
 /* ---------------- Element references ---------------- */
@@ -61,20 +24,6 @@ const debugTextarea = document.getElementById("debugTextarea");
 const toastEl = document.getElementById("toast");
 const accountNameEl = document.getElementById("accountName");
 const accountButton = document.getElementById("accountButton");
-const loginScreen = document.getElementById("loginScreen");
-const loginForm = document.getElementById("loginForm");
-const loginUsername = document.getElementById("loginUsername");
-const loginPassword = document.getElementById("loginPassword");
-const loginButton = document.getElementById("loginButton");
-const loginError = document.getElementById("loginError");
-const authTitle = document.getElementById("authTitle");
-const authSubtitle = document.getElementById("authSubtitle");
-const displayNameField = document.getElementById("displayNameField");
-const loginDisplayName = document.getElementById("loginDisplayName");
-const authSwitchButton = document.getElementById("authSwitchButton");
-const guestNote = document.getElementById("guestNote");
-let loginResolver = null;
-let authMode = "login";
 let currentUser = null;
 
 function conversationStorageKey(userId = currentUser?.id) {
@@ -105,41 +54,23 @@ function clearConversationSelection() {
 
 function renderAccount(user) {
   currentUser = user;
-  accountNameEl.textContent = user?.displayName || (user?.isGuest ? "Guest" : "User");
-  accountButton.textContent = user?.isGuest ? "Sign in" : "Sign out";
-  accountButton.title = user?.isGuest ? "Sign in or create an account" : "Sign out";
+  if (accountNameEl) accountNameEl.textContent = user?.displayName || "Demo";
+  if (accountButton) {
+    accountButton.textContent = "";
+    accountButton.style.display = "none";
+  }
 }
-
-/* NOTE ON IDENTITY:
-   There is no sign-in UI in this prototype. Students reach this
-   page already authenticated through the IMAS Google Site session.
-   In production, the secure backend reads the student's identity
-   from that authenticated session (e.g. their school email) â€” it
-   is never entered, displayed, or stored by this front end. */
-
-/* ================================================================
-   TWO-WEEK QUESTION LIMIT (front-end demo via localStorage)
-   In production the backend owns { studentEmail, periodStart,
-   periodEnd, questionsUsed, limit } for each student, and the
-   browser simply asks the backend for current usage on load.
-   ================================================================ */
 function formatDate(d) {
   return d.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
 }
 
 async function loadUsage() {
-  const response = await fetch("/usage/today", { headers: { Authorization: `Bearer ${authToken}` } });
-  if (response.status === 401) {
-    authToken = null;
-    localStorage.removeItem("imas_cs_tutor_token");
-    await ensureAuthenticated();
-    return loadUsage();
-  }
-  if (!response.ok) throw new Error("Could not load your question usage. Please refresh and try again.");
-  const usage = await response.json();
-  usedThisPeriod = usage.used;
-  questionLimit = usage.limit;
-  renderUsage(usage.resetsAt);
+  usedThisPeriod = 0;
+  questionLimit = 0;
+  usagePill.style.display = "none";
+  limitBanner.classList.remove("show");
+  resetNote.textContent = "";
+  updateSendButtonState();
 }
 
 function incrementUsage() {
@@ -147,28 +78,16 @@ function incrementUsage() {
 }
 
 function renderUsage(resetsAt) {
-  const label = `Questions used: ${usedThisPeriod} / ${questionLimit}`;
-  usageCountEl.textContent = label;
-  usageFooterText.textContent = label;
-
-  usagePill.classList.remove("warn", "full");
+  usageCountEl.textContent = "";
+  usageFooterText.textContent = "";
+  usagePill.style.display = "none";
   limitBanner.classList.remove("show");
-
-  if (usedThisPeriod >= questionLimit) {
-    usagePill.classList.add("full");
-    limitBanner.classList.add("show");
-    resetNote.textContent = resetsAt ? `New questions available from ${formatDate(new Date(resetsAt))}` : "Questions reset tomorrow";
-  } else if (usedThisPeriod >= questionLimit - 2) {
-    usagePill.classList.add("warn");
-    resetNote.textContent = "";
-  } else {
-    resetNote.textContent = "";
-  }
+  resetNote.textContent = "";
   updateSendButtonState();
 }
 
 function limitReached() {
-  return usedThisPeriod >= questionLimit;
+  return false;
 }
 
 function isGreeting(text) {
@@ -323,8 +242,7 @@ function removeTypingIndicator() {
    ================================================================ */
 function updateSendButtonState() {
   const hasText = chatInput.value.trim().length > 0;
-  const greeting = isGreeting(chatInput.value);
-  sendBtn.disabled = !hasText || isWaitingForResponse || (limitReached() && !greeting);
+  sendBtn.disabled = !hasText || isWaitingForResponse;
 }
 
 chatInput.addEventListener("input", () => {
@@ -344,7 +262,7 @@ sendBtn.addEventListener("click", handleSendClick);
 
 function handleSendClick() {
   const text = chatInput.value.trim();
-  if (!text || isWaitingForResponse || (limitReached() && !isGreeting(text))) return;
+  if (!text || isWaitingForResponse) return;
 
   chatInput.value = "";
   chatInput.style.height = "auto";
@@ -356,14 +274,13 @@ function handleSendClick() {
 /* Paste code / error drawer: sends as ONE question, same as any Send action */
 document.getElementById("debugSendBtn").addEventListener("click", () => {
   const code = debugTextarea.value.trim();
-  if (!code || isWaitingForResponse || limitReached()) return;
+  if (!code || isWaitingForResponse) return;
   debugTextarea.value = "";
   closeDebugDrawer();
   performTutorRequest(code, true);
 });
 
 function performTutorRequest(text, isCodeSubmission) {
-  if (limitReached() && !isGreeting(text)) return;
 
   conversation.push({ role: "student", text: isCodeSubmission ? `[Code submitted]\n${text}` : text });
   renderConversation();
@@ -494,100 +411,14 @@ function showToast(text) {
    AUTH + INIT
    ================================================================ */
 async function ensureAuthenticated() {
-  if (authToken) {
-    const session = await fetch("/auth/me", { headers: { Authorization: `Bearer ${authToken}` } });
-    if (session.ok) {
-      setUserSession((await session.json()).user);
-      return;
-    }
-    authToken = null;
-    localStorage.removeItem("imas_cs_tutor_token");
-  }
-  const response = await fetch("/auth/guest", { method: "POST" });
-  const data = await response.json();
-  authToken = data.token;
-  localStorage.setItem("imas_cs_tutor_token", authToken);
-  setUserSession(data.user);
+  authToken = "";
+  currentUser = { displayName: "Demo", isGuest: false };
+  renderAccount(currentUser);
 }
 
 function showAuthScreen(message) {
-  authMode = "login";
-  authTitle.textContent = "Sign in to IMAS CS Tutor";
-  authSubtitle.textContent = "Create an account to keep learning.";
-  displayNameField.hidden = true;
-  loginDisplayName.required = false;
-  loginButton.textContent = "Sign in";
-  authSwitchButton.textContent = "Create an account";
-  guestNote.textContent = message || "You can try three questions before creating an account.";
-  loginError.textContent = "";
-  loginScreen.style.display = "flex";
-  loginUsername.focus();
+  return;
 }
-
-authSwitchButton.addEventListener("click", () => {
-  authMode = authMode === "login" ? "register" : "login";
-  const registering = authMode === "register";
-  authTitle.textContent = registering ? "Create your IMAS CS Tutor account" : "Sign in to IMAS CS Tutor";
-  authSubtitle.textContent = registering ? "Save your conversations and continue learning." : "Use your student account to continue.";
-  displayNameField.hidden = !registering;
-  loginDisplayName.required = registering;
-  loginButton.textContent = registering ? "Create account" : "Sign in";
-  authSwitchButton.textContent = registering ? "Already have an account? Sign in" : "Create an account";
-  guestNote.textContent = registering ? "Your guest questions will not be transferred to the account." : "";
-  loginError.textContent = "";
-});
-
-loginForm.addEventListener("submit", async event => {
-  event.preventDefault();
-  loginError.textContent = "";
-  loginButton.disabled = true;
-  try {
-    const endpoint = authMode === "register" ? "/auth/register" : "/auth/login";
-    const body = authMode === "register"
-      ? { username: loginUsername.value.trim(), displayName: loginDisplayName.value.trim(), password: loginPassword.value }
-      : { username: loginUsername.value.trim(), password: loginPassword.value };
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Invalid username or password");
-    authToken = data.token;
-    localStorage.setItem("imas_cs_tutor_token", authToken);
-    setUserSession(data.user, true);
-    loginScreen.style.display = "none";
-    loginPassword.value = "";
-    loginResolver?.resolve();
-    loginResolver = null;
-    await loadUsage();
-    await loadConversationHistory();
-    if (window.refreshConversationList) await window.refreshConversationList();
-    renderConversation();
-    updateSendButtonState();
-  } catch (error) {
-    loginError.textContent = error.message || "Unable to sign in";
-  } finally {
-    loginButton.disabled = false;
-  }
-});
-
-accountButton.addEventListener("click", () => {
-  if (currentUser?.isGuest) {
-    showAuthScreen("Sign in or create an account to keep your conversations.");
-    return;
-  }
-  authToken = null;
-  currentUser = null;
-  localStorage.removeItem("imas_cs_tutor_token");
-  clearConversationSelection();
-  ensureAuthenticated().then(async () => {
-    await loadUsage();
-    renderConversation();
-    updateSendButtonState();
-    if (window.refreshConversationList) await window.refreshConversationList();
-  });
-});
 
 async function initialize() {
   try {
@@ -595,7 +426,7 @@ async function initialize() {
     await loadUsage();
     await loadConversationHistory();
     if (window.refreshConversationList) await window.refreshConversationList();
-    loginScreen.style.display = "none";
+    if (loginScreen) loginScreen.style.display = "none";
   } catch (error) {
     loginError.textContent = error.message || "Unable to load your session";
   }
