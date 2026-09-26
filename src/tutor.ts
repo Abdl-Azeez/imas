@@ -447,6 +447,10 @@ function matchesBannedGenericPhrase(response: z.infer<typeof responseSchema>) {
   return BANNED_GENERIC_PHRASES.some((pattern) => pattern.test(text));
 }
 
+function logTutorFailure(stage: string, details: Record<string, unknown>) {
+  console.error(`[tutor:${stage}]`, JSON.stringify(details, null, 2));
+}
+
 // A student message counts as having "submitted code" only when it looks like
 // an actual attempt (a fenced block, or multiple lines with real code
 // punctuation) - a one-word or one-line answer like "0" or "a loop" does not
@@ -680,7 +684,13 @@ function systemPrompt(
 ) {
   const casual = isCasualMessage(message);
   return `You are a patient IGCSE Computer Science and ICT tutor for IMAS students. Return exactly one JSON object and nothing else.
-The JSON object MUST have this exact shape: {"sections":[{"label":"Reply","text":"short response"}],"questionType":"conceptual","studentProgress":"no_attempt","guidanceLevel":0,"activePart":"main"}.
+IMPORTANT LABEL RULE: the sections array has REQUIRED labels, not generic labels.
+For non-build responses, you MUST use exactly these labels, in this order:
+- first section label: "Let's Think"
+- second section label: "Hint"
+Do not invent different labels like "Guiding Question", "Think About This", "Explanation", or "Reply". The validator checks for the literal strings "Let's Think" and "Hint".
+For build tasks, use a single first section label exactly "Let's Think" and, if you include a second section, it must be exactly "Hint". Do not use any other label.
+The JSON object must have this exact shape for a non-build response: {"sections":[{"label":"Let's Think","text":"..."},{"label":"Hint","text":"..."}],"questionType":"conceptual","studentProgress":"no_attempt","guidanceLevel":0,"activePart":"main"}.
 The sections array is required and must contain at least one object. Each section object may contain label, text, code, and codeLang. questionType must be factual, conceptual, debug, or build. studentProgress must be close, off_track, or no_attempt. guidanceLevel must be an integer from 0 to 2. activePart must be "main" for a single, non-lettered question, or the lowercase letter (e.g. "a", "b") of the specific lettered sub-part this message is currently addressing - use the letters exactly as given in the question, never invent new ones, and never address more than one sub-part in a single response.
 Mode: ${mode}.
 ${guidanceTable}
@@ -828,7 +838,18 @@ export async function generateTutorResponse(
 
   const raw = completion.choices[0]?.message.content;
   if (!raw) throw new Error("The tutor returned an empty response");
-  let parsed = responseSchema.safeParse(JSON.parse(raw));
+
+  let parsed;
+  try {
+    parsed = responseSchema.safeParse(JSON.parse(raw));
+  } catch (error) {
+    logTutorFailure("initial_parse", {
+      message,
+      raw,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    parsed = { success: false, error: new z.ZodError([]) } as never;
+  }
 
   let needsRepair =
     !parsed.success ||
@@ -928,8 +949,24 @@ ${detectedParts.length ? `This question has lettered sub-parts: ${detectedParts.
       ],
     });
     const repairedRaw = repair.choices[0]?.message.content;
-    if (!repairedRaw) throw new Error("The tutor returned an invalid response");
-    parsed = responseSchema.safeParse(JSON.parse(repairedRaw));
+    if (!repairedRaw) {
+      logTutorFailure("repair_missing_content", {
+        message,
+        invalidResponse: raw,
+      });
+      throw new Error("The tutor returned an invalid response");
+    }
+    try {
+      parsed = responseSchema.safeParse(JSON.parse(repairedRaw));
+    } catch (error) {
+      logTutorFailure("repair_parse", {
+        message,
+        invalidResponse: raw,
+        repairedRaw,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      parsed = { success: false, error: new z.ZodError([]) } as never;
+    }
     needsRepair =
       !parsed.success ||
       (!isCasualMessage(message) && isWelcomeResponse(parsed.data)) ||
@@ -950,6 +987,13 @@ ${detectedParts.length ? `This question has lettered sub-parts: ${detectedParts.
         : (detectedParts[0] ?? "main");
       const effectiveLevel = priorLevelFor(fallbackPart);
       if (effectiveLevel === 0 && !isCasualMessage(message)) {
+        logTutorFailure("using_fallback_guidance", {
+          message,
+          invalidResponse: raw,
+          repairedRaw,
+          isBuildContext,
+          error: parsed.success ? "failed_validation_rules" : "invalid_json_or_schema",
+        });
         return {
           response: fallbackGuidedResponse(
             mode,
@@ -961,6 +1005,13 @@ ${detectedParts.length ? `This question has lettered sub-parts: ${detectedParts.
           tokensUsed: completion.usage?.total_tokens ?? 0,
         };
       }
+      logTutorFailure("repair_failed", {
+        message,
+        invalidResponse: raw,
+        repairedRaw,
+        isBuildContext,
+        parsed: parsed.success ? parsed.data : parsed,
+      });
       throw new Error(
         "The tutor returned a response that did not follow the guidance rules. Try again.",
       );
