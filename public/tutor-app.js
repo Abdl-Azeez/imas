@@ -128,10 +128,28 @@ function scrollToBottom() {
 function buildStudentBubble(text) {
   const row = document.createElement("div");
   row.className = "msg-row student";
+
+  const bubbleWrap = document.createElement("div");
+  bubbleWrap.className = "msg-stack";
+
   const bubble = document.createElement("div");
   bubble.className = "msg-bubble";
   bubble.textContent = text;
-  row.appendChild(bubble);
+
+  const actionRow = document.createElement("div");
+  actionRow.className = "response-actions compact-actions";
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "action-btn copy-question-btn";
+  copyBtn.textContent = "Copy";
+  copyBtn.addEventListener("click", () => {
+    copyTextToClipboard(text);
+    showToast("Question copied");
+  });
+  actionRow.appendChild(copyBtn);
+
+  bubbleWrap.appendChild(bubble);
+  bubbleWrap.appendChild(actionRow);
+  row.appendChild(bubbleWrap);
   return row;
 }
 
@@ -156,7 +174,8 @@ function buildTutorBubble(item) {
   const actions = document.createElement("div");
   actions.className = "response-actions";
   actions.innerHTML = `
-    <button class="action-btn copy-response-btn">&#128203; Copy</button>
+    <button class="action-btn copy-response-btn">Copy</button>
+    <button class="action-btn reload-response-btn">Reload</button>
     <button class="action-btn feedback-btn" data-value="up">&#128077; Helpful</button>
     <button class="action-btn feedback-btn" data-value="down">&#128078; Not helpful</button>
   `;
@@ -175,6 +194,33 @@ function buildTutorBubble(item) {
     copyTextToClipboard(plainTextFromResponse(item.response));
     showToast("Response copied");
   });
+
+  actions
+    .querySelector(".reload-response-btn")
+    .addEventListener("click", async () => {
+      const questionText = item.questionText || "";
+      if (!questionText) {
+        showToast("No question to reload");
+        return;
+      }
+      try {
+        const reloaded = await sendMessageToTutor(questionText, conversation);
+        const index = conversation.findIndex((entry) => entry === item);
+        if (index !== -1) {
+          conversation[index] = {
+            role: "tutor",
+            response: reloaded,
+            messageId: reloaded.messageId,
+            reveal: true,
+            questionText,
+          };
+          renderConversation();
+          showToast("Response refreshed");
+        }
+      } catch (error) {
+        showToast(error.message || "Unable to reload response");
+      }
+    });
 
   actions.querySelectorAll(".feedback-btn").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -295,7 +341,13 @@ function performTutorRequest(text, isCodeSubmission) {
       conversationId = response.conversationId || conversationId;
       persistConversationId();
       if (window.refreshConversationList) window.refreshConversationList();
-      conversation.push({ role: "tutor", response: response, messageId: response.messageId, reveal: true });
+      conversation.push({
+        role: "tutor",
+        response: response,
+        messageId: response.messageId,
+        reveal: true,
+        questionText: text,
+      });
       if (!isGreeting(text)) incrementUsage();
       isWaitingForResponse = false;
       renderConversation();

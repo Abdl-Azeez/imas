@@ -1,4 +1,4 @@
-export type QuestionType = "factual" | "conceptual" | "debug";
+export type QuestionType = "factual" | "conceptual" | "debug" | "build";
 export type StudentProgress = "close" | "off_track" | "no_attempt";
 export type Mode = "ask" | "debug";
 
